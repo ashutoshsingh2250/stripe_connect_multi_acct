@@ -6,9 +6,9 @@ A reporting system for Stripe Connect platforms to generate transaction reports 
 
 - Node.js 16+ and npm
 - Stripe Connect platform account
-- Gmail account (for email functionality)
+- Gmail account (for email export functionality)
 
-## Setup
+## Installation
 
 ### 1. Install Dependencies
 
@@ -28,9 +28,8 @@ cd ../server && npm install
 Create `server/.env` file:
 
 ```bash
-# Stripe API Keys
-STRIPE_SECRET_KEY=your_stripe_secret_key_here
-STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
+# JWT Configuration
+JWT_SECRET=stripe-connect-jwt-secret-2025
 
 # Email Configuration (Gmail)
 SMTP_HOST=smtp.gmail.com
@@ -41,10 +40,9 @@ SMTP_PASS=your_gmail_app_password
 # Server Configuration
 PORT=5000
 NODE_ENV=development
-SESSION_SECRET=your_session_secret_here
 ```
 
-**Note**: A real `.env` file is attached to this project which can be directly tested.
+**Note**: Stripe API keys are entered in the frontend interface, not in environment variables.
 
 ### 3. Gmail Setup
 
@@ -64,8 +62,8 @@ npm run dev
 
 This starts:
 
-- Backend server on port 5000
-- Frontend server on port 3000
+- Backend server on port 5000 (with hot-reload)
+- Frontend server on port 3000 (with hot-reload)
 
 ### Option 2: Run Separately
 
@@ -85,13 +83,27 @@ npm start
 
 ## Access
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
 
 ## Usage
 
-1. Enter your Stripe Connect API keys
-2. Click "Fetch" to get connected accounts
-3. Select accounts for reporting
-4. Configure date range and timezone
-5. Generate report or export directly
+1. **Login** with demo credentials:
+    - Username: `admin` / Password: `admin123`
+    - Username: `user` / Password: `password`
+
+2. **Enter Stripe Keys** in the frontend:
+    - Public Key (pk*test*... or pk*live*...)
+    - Secret Key (sk*test*... or sk*live*...)
+
+3. **Generate Reports**:
+    - Click "Fetch" to get connected accounts
+    - Select accounts and configure date range
+    - Generate report or export directly
+
+## Export Options
+
+- CSV Export
+- Excel Export
+- Email Export
+- Google Sheets Export

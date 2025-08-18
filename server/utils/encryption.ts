@@ -4,18 +4,28 @@
 const ENCRYPTION_KEY = 'stripe-connect-2025'; // This should be stored securely in production
 
 // Simple character shift - preserves all characters including special ones
+function simpleEncrypt(text: string, key: string): string {
+    if (!text) return '';
+
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+        const keyChar = key.charAt(i % key.length);
+        const shift = keyChar.charCodeAt(0) % 10; // Use modulo 10 for smaller shifts
+
+        // Shift all characters by the key value
+        const charCode = text.charCodeAt(i);
+        const shiftedCode = charCode + shift;
+        result += String.fromCharCode(shiftedCode);
+    }
+    return Buffer.from(result, 'binary').toString('base64'); // Base64 encode
+}
+
 function simpleDecrypt(encryptedText: string, key: string): string {
     try {
         if (!encryptedText) return '';
 
-        // First, decode from base64 using Buffer (more compatible with Node.js)
-        let decoded: string;
-        try {
-            decoded = Buffer.from(encryptedText, 'base64').toString('binary');
-        } catch (error) {
-            // Fallback to utf8 if binary fails
-            decoded = Buffer.from(encryptedText, 'base64').toString('utf8');
-        }
+        // Decode from base64 - matching frontend atob() behavior
+        const decoded = Buffer.from(encryptedText, 'base64').toString('binary');
 
         // Then apply character shift decryption
         let result = '';
@@ -36,10 +46,16 @@ function simpleDecrypt(encryptedText: string, key: string): string {
     }
 }
 
-// Decrypt API keys received from frontend
-export const decryptApiKey = (encryptedApiKey: string): string => {
-    if (!encryptedApiKey) return '';
-    return simpleDecrypt(encryptedApiKey, ENCRYPTION_KEY);
+// Encrypt data (for secret keys, etc.)
+export const encryptSecretKey = (secretKey: string): string => {
+    if (!secretKey) return '';
+    return simpleEncrypt(secretKey, ENCRYPTION_KEY);
+};
+
+// Decrypt secret key received from frontend
+export const decryptSecretKey = (encryptedSecretKey: string): string => {
+    if (!encryptedSecretKey) return '';
+    return simpleDecrypt(encryptedSecretKey, ENCRYPTION_KEY);
 };
 
 // Decrypt public key received from frontend

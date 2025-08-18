@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { validateSession } from '../middleware/auth';
+import { validateJWT, validateStripeKeys } from '../middleware/auth';
 import stripeService from '../services/stripeService';
 import emailService from '../services/emailService';
 import XLSX from 'xlsx';
@@ -11,7 +11,8 @@ const router = Router();
 // CSV Export endpoint
 router.post(
     '/csv/:accountIds',
-    validateSession,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { accountIds } = req.params;
@@ -140,7 +141,8 @@ router.post(
 // Excel Export endpoint
 router.post(
     '/xls/:accountIds',
-    validateSession,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { accountIds } = req.params;
@@ -270,7 +272,8 @@ router.post(
 // Email export endpoint
 router.post(
     '/email/:accountIds',
-    validateSession,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { accountIds } = req.params;
@@ -396,7 +399,8 @@ router.post(
 // Google Sheets export endpoint
 router.post(
     '/sheets/:accountIds',
-    validateSession,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { accountIds } = req.params;

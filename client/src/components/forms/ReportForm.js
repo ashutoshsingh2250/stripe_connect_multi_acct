@@ -68,7 +68,7 @@ const ReportForm = ({
     };
 
     const handleFetchAccounts = async () => {
-        if (formData.apiKey && formData.publicKey) {
+        if (formData.secretKey && formData.publicKey) {
             await onFetchAccounts();
         }
     };
@@ -93,8 +93,7 @@ const ReportForm = ({
             </Typography>
 
             <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                Enter your Stripe Connect credentials first, then select the accounts you want to
-                include in your report. Large date ranges may take several minutes to process.
+                Enter your Stripe Connect credentials first, then select the accounts you want to include in your report. Large date ranges may take several minutes to process.
             </Typography>
 
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -126,8 +125,8 @@ const ReportForm = ({
                     <TextField
                         fullWidth
                         label="Secret Key"
-                        value={formData.apiKey}
-                        onChange={e => handleInputChange('apiKey', e.target.value)}
+                        value={formData.secretKey}
+                        onChange={e => handleInputChange('secretKey', e.target.value)}
                         placeholder="sk_test_51..."
                         helperText="Your Stripe secret key (starts with 'sk_test_' or 'sk_live_')"
                         required
@@ -142,7 +141,7 @@ const ReportForm = ({
                             <Button
                                 variant="outlined"
                                 onClick={handleFetchAccounts}
-                                disabled={!formData.apiKey || !formData.publicKey}
+                                disabled={!formData.secretKey || !formData.publicKey}
                                 sx={{ minWidth: 'auto', px: 2 }}
                             >
                                 Fetch
@@ -405,8 +404,11 @@ const ReportForm = ({
                             onClick={onGenerateReport}
                             disabled={
                                 loading ||
-                                !formData.connectedAccountId ||
-                                !formData.apiKey ||
+                                selectedAccounts.length === 0 ||
+                                !formData.startDate ||
+                                !formData.endDate ||
+                                !formData.timezone ||
+                                !formData.secretKey ||
                                 !formData.publicKey
                             }
                             sx={{ minWidth: 200, py: 1.5 }}

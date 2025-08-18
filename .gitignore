@@ -110,7 +110,6 @@ ehthumbs.db
 Thumbs.db
 
 # Stripe Connect specific
-server/exports/
 *.csv
 *.xlsx
 *.xls

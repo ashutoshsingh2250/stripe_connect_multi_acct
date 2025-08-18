@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiService } from '../services/api';
+import { encryptSecretKey, encryptPublicKey } from '../utils/encryption';
 
 export const useReport = () => {
     const [report, setReport] = useState(null);
@@ -32,10 +33,17 @@ export const useReport = () => {
                     limit: limit.toString(),
                 });
 
+                // Prepare encrypted headers (only Stripe keys, no auth token)
+                const headers = {
+                    'x-secret-key': encryptSecretKey(formData.secretKey),
+                    'x-public-key': encryptPublicKey(formData.publicKey),
+                };
+
                 // Always use multi-account endpoint for consistency
                 const response = await apiService.getMultiAccountReport(
                     formData.connectedAccountId,
-                    params
+                    params,
+                    headers
                 );
 
                 if (response.success) {
@@ -79,6 +87,12 @@ export const useReport = () => {
             setExportLoading(true);
             setError(null);
 
+                    // Prepare encrypted headers for export functions (only Stripe keys, no auth token)
+        const headers = {
+            'x-secret-key': encryptSecretKey(formData.secretKey),
+            'x-public-key': encryptPublicKey(formData.publicKey),
+        };
+
             let response;
             if (format === 'csv') {
                 response = await apiService.exportToCSV(formData.connectedAccountId, {
@@ -86,21 +100,21 @@ export const useReport = () => {
                     end_date: formData.endDate,
                     timezone: formData.timezone,
                     period: formData.period,
-                });
+                }, headers);
             } else if (format === 'xls' || format === 'xlsx') {
                 response = await apiService.exportToXLS(formData.connectedAccountId, {
                     start_date: formData.startDate,
                     end_date: formData.endDate,
                     timezone: formData.timezone,
                     period: formData.period,
-                });
+                }, headers);
             } else if (format === 'sheets') {
                 response = await apiService.exportToGoogleSheets(formData.connectedAccountId, {
                     start_date: formData.startDate,
                     end_date: formData.endDate,
                     timezone: formData.timezone,
                     period: formData.period,
-                });
+                }, headers);
             } else if (format === 'email') {
                 if (!email) {
                     throw new Error('Email address is required for email export');
@@ -112,7 +126,7 @@ export const useReport = () => {
                     timezone: formData.timezone,
                     period: formData.period,
                     email: email,
-                });
+                }, headers);
             } else {
                 throw new Error(`Unsupported export format: ${format}`);
             }

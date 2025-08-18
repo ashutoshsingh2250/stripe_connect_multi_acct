@@ -7,6 +7,8 @@ import {
     createTheme,
     AppBar,
     Toolbar,
+    Button,
+    Box,
 } from '@mui/material';
 import { format } from 'date-fns';
 
@@ -15,12 +17,13 @@ import { useTimezones } from './hooks/useTimezones';
 import { useReport } from './hooks/useReport';
 
 // API service
-import { apiService } from './services/api';
+import { apiService, logout, checkAuthStatus } from './services/api';
 
 // Encryption utilities
-import { encryptApiKey, encryptPublicKey } from './utils/encryption';
+import { encryptSecretKey, encryptPublicKey } from './utils/encryption';
 
 // Components
+import LoginForm from './components/auth/LoginForm';
 import ReportForm from './components/forms/ReportForm';
 import ReportDisplay from './components/reports/ReportDisplay';
 import ExportButtons from './components/export/ExportButtons';
@@ -41,10 +44,15 @@ const theme = createTheme({
 });
 
 function App() {
+    // Authentication state
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
     // Form state
     const [formData, setFormData] = useState({
         connectedAccountId: '',
-        apiKey: '',
+        secretKey: '',
         publicKey: '',
         startDate: format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
         endDate: format(new Date(), 'yyyy-MM-dd'),
@@ -72,12 +80,68 @@ function App() {
         exportReport,
     } = useReport();
 
+    // Check authentication status on app load
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                // First check if token exists in localStorage
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    return;
+                }
+
+                // Validate token with server
+                const response = await checkAuthStatus();
+                if (response.data.authenticated) {
+                    setIsAuthenticated(true);
+                    setUser(response.data.user);
+                } else {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                }
+            } catch (error) {
+                // Token is invalid or expired, or server error
+                console.log('Authentication failed:', error.message);
+                setIsAuthenticated(false);
+                setUser(null);
+                localStorage.removeItem('authToken'); // Clear invalid token
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+
+        checkAuth();
+    }, []);
+
+    // Handle login success
+    const handleLoginSuccess = userData => {
+        setIsAuthenticated(true);
+        setUser(userData);
+    };
+
+    // Handle logout
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Always update state regardless of server response
+            setIsAuthenticated(false);
+            setUser(null);
+            setAccounts([]);
+            setReport(null);
+        }
+    };
+
     // Fetch accounts function
     const handleFetchAccounts = async () => {
         try {
             setAccountsLoading(true);
             const headers = {
-                Authorization: `Bearer ${encryptApiKey(formData.apiKey)}`,
+                'x-secret-key': encryptSecretKey(formData.secretKey),
                 'x-public-key': encryptPublicKey(formData.publicKey),
             };
             const response = await apiService.getAccounts(headers);
@@ -140,21 +204,42 @@ function App() {
         }
     };
 
-    // Reset form when date/timezone changes
-    useEffect(() => {
-        if (report) {
-            setFormData(prev => ({ ...prev }));
-        }
-    }, [report]);
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Container maxWidth="sm" sx={{ mt: 8 }}>
+                    <LoadingSpinner />
+                </Container>
+            </ThemeProvider>
+        );
+    }
+
+    // Show login form if not authenticated
+    if (!isAuthenticated) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <LoginForm onLoginSuccess={handleLoginSuccess} />
+            </ThemeProvider>
+        );
+    }
 
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
             <AppBar position="static">
                 <Toolbar>
-                    <Typography variant="h6" component="div">
+                    <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                         Stripe Connect Reporting
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="body2">Welcome, {user?.username}</Typography>
+                        <Button color="inherit" onClick={handleLogout}>
+                            Logout
+                        </Button>
+                    </Box>
                 </Toolbar>
             </AppBar>
             <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -182,7 +267,7 @@ function App() {
                     loading={exportLoading}
                     hasReport={!!report}
                     hasCredentials={
-                        !!formData.apiKey && !!formData.publicKey && !!formData.connectedAccountId
+                        !!formData.secretKey && !!formData.publicKey && !!formData.connectedAccountId
                     }
                 />
 

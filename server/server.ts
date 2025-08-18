@@ -6,11 +6,9 @@ dotenv.config();
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import cron from 'node-cron';
-import cookieParser from 'cookie-parser';
-import session from 'express-session';
 
 // Import routes
+import authRoutes from './routes/auth';
 import reportRoutes from './routes/reports';
 import exportRoutes from './routes/export';
 
@@ -22,25 +20,11 @@ app.use(helmet());
 app.use(
     cors({
         origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
-        credentials: true, // Allow cookies
+        credentials: false, // No cookies needed with JWT in headers
     })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(
-    session({
-        secret: process.env['SESSION_SECRET'] || 'stripe-connect-secret-2025',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            secure: process.env['NODE_ENV'] === 'production',
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
-            sameSite: 'lax',
-        },
-    })
-);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
@@ -48,6 +32,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export', exportRoutes);
 
@@ -64,27 +49,6 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 app.use('*', (_req: Request, res: Response) => {
     res.status(404).json({ error: 'Route not found' });
 });
-
-// Schedule automated reports
-if (process.env['NODE_ENV'] === 'production') {
-    // Daily report at 9 AM
-    cron.schedule('0 9 * * *', () => {
-        console.log('Generating daily report...');
-        // TODO: Implement daily report generation
-    });
-
-    // Weekly report every Monday at 9 AM
-    cron.schedule('0 9 * * 1', () => {
-        console.log('Generating weekly report...');
-        // TODO: Implement weekly report generation
-    });
-
-    // Monthly report on 1st of month at 9 AM
-    cron.schedule('0 9 1 * *', () => {
-        console.log('Generating monthly report...');
-        // TODO: Implement monthly report generation
-    });
-}
 
 const serverInstance = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

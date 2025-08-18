@@ -3,11 +3,10 @@ import moment from 'moment-timezone';
 import { TransactionData } from '../types';
 
 class StripeService {
+    // No longer requiring Stripe keys in environment variables
+    // All Stripe keys are now provided via encrypted headers from frontend
     constructor() {
-        const secretKey = process.env['STRIPE_SECRET_KEY'];
-        if (!secretKey) {
-            throw new Error('STRIPE_SECRET_KEY environment variable is required');
-        }
+        // Constructor intentionally empty - Stripe keys come from request headers
     }
 
     // Get multiple accounts for the authenticated user

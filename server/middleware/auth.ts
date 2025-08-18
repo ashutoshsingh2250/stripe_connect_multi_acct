@@ -1,55 +1,71 @@
 import { Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest } from '../types';
+import { decryptSecretKey, decryptPublicKey } from '../utils/encryption';
 
-import { decryptApiKey, decryptPublicKey } from '../utils/encryption';
-
-// Session-based authentication middleware (for authenticated users)
-const validateSession = async (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
-    try {
-        // Check if user has a valid session with Stripe keys
-        if (!req.session || !req.session.stripeSecretKey || !req.session.stripePublicKey) {
-            res.status(401).json({
-                error: 'Unauthorized',
-                message: 'No valid session found. Please authenticate first.',
-            });
-            return;
-        }
-
-        // Set user data from session
-        req.user = {
-            connectedAccountId: req.session.connectedAccountId || '',
-            secretKey: req.session.stripeSecretKey,
-            publicKey: req.session.stripePublicKey,
-        };
-
-        next();
-    } catch (error) {
-        console.error('Session validation error:', error);
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to validate session',
-        });
-    }
-};
-
-// Initial authentication middleware (only for /accounts endpoint)
-const validateApiKeyOnly = async (
+// JWT-based authentication middleware
+const validateJWT = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
 ): Promise<void> => {
     try {
         const authHeader = req.headers.authorization;
-        const publicKey: string | undefined = req.headers['x-public-key'] as string;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             res.status(401).json({
                 error: 'Unauthorized',
-                message: 'Missing or invalid Authorization header',
+                message: 'Missing or invalid Authorization header. Please login.',
+            });
+            return;
+        }
+
+        // Extract JWT token from Bearer header
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+        if (!token) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Invalid token format.',
+            });
+            return;
+        }
+
+        const jwtSecret = process.env['JWT_SECRET'] || 'stripe-connect-jwt-secret-2025';
+        const decoded = jwt.verify(token, jwtSecret) as any;
+
+        // Set user info from JWT
+        req.user = {
+            username: decoded.username,
+            connectedAccountId: '',
+            secretKey: '',
+            publicKey: '',
+        };
+
+        next();
+    } catch (error) {
+        console.error('JWT validation error:', error);
+        res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Invalid or expired token.',
+        });
+    }
+};
+
+// Stripe key validation middleware (validates encrypted Stripe keys from headers)
+const validateStripeKeys = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const secretKey: string | undefined = req.headers['x-secret-key'] as string;
+        const publicKey: string | undefined = req.headers['x-public-key'] as string;
+
+        if (!secretKey) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Missing x-secret-key header',
             });
             return;
         }
@@ -63,10 +79,10 @@ const validateApiKeyOnly = async (
         }
 
         // Decrypt the keys from frontend
-        const encryptedSecretKey = authHeader.substring(7);
+        const encryptedSecretKey = secretKey;
         const encryptedPublicKey = publicKey;
 
-        const decryptedSecretKey = decryptApiKey(encryptedSecretKey);
+        const decryptedSecretKey = decryptSecretKey(encryptedSecretKey);
         const decryptedPublicKey = decryptPublicKey(encryptedPublicKey);
 
         if (!decryptedSecretKey || !decryptedPublicKey) {
@@ -77,38 +93,24 @@ const validateApiKeyOnly = async (
             return;
         }
 
-        // Validate that the decrypted keys match the server's expected keys
-        const expectedSecretKey = process.env['STRIPE_SECRET_KEY'];
-        const expectedPublicKey = process.env['STRIPE_PUBLISHABLE_KEY'];
+        // Basic validation that keys look like Stripe keys (more flexible)
+        const isValidSecretKey = /^(sk_|rk_)(test_|live_)\w+/.test(decryptedSecretKey);
+        const isValidPublicKey = /^pk_(test_|live_)\w+/.test(decryptedPublicKey);
 
-        if (!expectedSecretKey || !expectedPublicKey) {
-            res.status(500).json({
-                error: 'Server Configuration Error',
-                message: 'Stripe keys not configured on server',
-            });
-            return;
-        }
-
-        if (decryptedSecretKey !== expectedSecretKey || decryptedPublicKey !== expectedPublicKey) {
+        if (!isValidSecretKey || !isValidPublicKey) {
             res.status(401).json({
                 error: 'Unauthorized',
-                message: 'Invalid API credentials',
+                message: 'Invalid Stripe API key format',
             });
             return;
         }
 
-        // Store the validated keys in session for future use
-        if (req.session) {
-            req.session.stripeSecretKey = expectedSecretKey;
-            req.session.stripePublicKey = expectedPublicKey;
-            req.session.authenticated = true;
-        }
-
-        // Use server's keys from .env for all Stripe API calls
+        // Use decrypted keys from frontend for all Stripe API calls
         req.user = {
+            ...req.user, // Preserve existing user info (like username from JWT)
             connectedAccountId: '', // Empty for accounts endpoint
-            secretKey: expectedSecretKey,
-            publicKey: expectedPublicKey,
+            secretKey: decryptedSecretKey,
+            publicKey: decryptedPublicKey,
         };
 
         next();
@@ -121,4 +123,4 @@ const validateApiKeyOnly = async (
     }
 };
 
-export { validateApiKeyOnly, validateSession };
+export { validateStripeKeys, validateJWT };

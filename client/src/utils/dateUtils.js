@@ -26,22 +26,3 @@ export const getDefaultDateRange = (period = 'custom') => {
             };
     }
 };
-
-export const validateDateRange = (startDate, endDate) => {
-    if (!startDate || !endDate) {
-        return { isValid: false, error: 'Both start and end dates are required' };
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return { isValid: false, error: 'Invalid date format. Use YYYY-MM-DD' };
-    }
-
-    if (start > end) {
-        return { isValid: false, error: 'Start date cannot be after end date' };
-    }
-
-    return { isValid: true };
-};

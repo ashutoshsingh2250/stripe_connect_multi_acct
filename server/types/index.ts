@@ -1,16 +1,6 @@
 // Express and HTTP types
 import { Request } from 'express';
 
-// Custom session interface
-declare module 'express-session' {
-    interface SessionData {
-        stripeSecretKey?: string;
-        stripePublicKey?: string;
-        authenticated?: boolean;
-        connectedAccountId?: string;
-    }
-}
-
 export interface TransactionData {
     date: string;
     charges_count: number;
@@ -53,6 +43,7 @@ export interface MultiAccountReportResponse {
 // Authentication types
 export interface AuthenticatedRequest extends Request {
     user?: {
+        username?: string;
         connectedAccountId: string;
         secretKey: string;
         publicKey: string;

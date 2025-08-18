@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import stripeService from '../services/stripeService';
 
-import { validateApiKeyOnly, validateSession } from '../middleware/auth';
+import { validateStripeKeys, validateJWT } from '../middleware/auth';
 import { AuthenticatedRequest, TimezoneResponse, MultiAccountReportResponse } from '../types';
 import moment from 'moment-timezone';
 
@@ -40,7 +40,8 @@ router.get('/timezones', (_req: Request, res: Response): Response => {
 // Get multiple accounts for the authenticated user
 router.get(
     '/accounts',
-    validateApiKeyOnly,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { secretKey } = req.user!;
@@ -65,7 +66,8 @@ router.get(
 // Get transaction report for multiple connected accounts
 router.get(
     '/multi/:accountIds',
-    validateSession,
+    validateJWT,
+    validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
             const { accountIds } = req.params;
