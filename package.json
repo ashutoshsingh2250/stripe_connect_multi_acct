@@ -1,0 +1,31 @@
+{
+    "name": "stripe-connect-reporting-api",
+    "version": "1.0.0",
+    "description": "Stripe Connect Reporting API - Full Stack Application",
+    "main": "index.js",
+    "scripts": {
+        "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+        "start": "concurrently \"cd server && npm start\" \"cd client && npm start\"",
+        "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+        "build": "cd client && npm run build",
+        "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,html,css,scss,md}\"",
+        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,html,css,scss,md}\"",
+        "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "stripe",
+        "connect",
+        "reporting",
+        "api",
+        "react",
+        "nodejs",
+        "express"
+    ],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "prettier": "^3.6.2"
+    }
+}
