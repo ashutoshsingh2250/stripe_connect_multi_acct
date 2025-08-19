@@ -48,10 +48,24 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // Serve static files from React build in production
 if (process.env['NODE_ENV'] === 'production') {
-    const clientBuildPath = path.join(__dirname, '../client/build');
+    // Try multiple possible paths for the client build
+    const possiblePaths = [
+        path.join(__dirname, '../client/build'),
+        path.join(__dirname, '../../client/build'),
+        path.join(process.cwd(), 'client/build'),
+        path.join(process.cwd(), '../client/build')
+    ];
 
-    // Check if build directory exists
-    if (require('fs').existsSync(clientBuildPath)) {
+    let clientBuildPath = null;
+    for (const buildPath of possiblePaths) {
+        if (require('fs').existsSync(buildPath)) {
+            clientBuildPath = buildPath;
+            console.log(`✅ Found client build at: ${buildPath}`);
+            break;
+        }
+    }
+
+    if (clientBuildPath) {
         // Serve static files from the React build
         app.use(express.static(clientBuildPath));
 
@@ -61,6 +75,8 @@ if (process.env['NODE_ENV'] === 'production') {
         });
     } else {
         console.warn('⚠️  Client build directory not found. API-only mode.');
+        console.log('📱 Searched in these locations:');
+        possiblePaths.forEach(path => console.log(`   - ${path}`));
         console.log('📱 To serve the frontend, build the client and place it in client/build/');
 
         // 404 handler for API-only mode
