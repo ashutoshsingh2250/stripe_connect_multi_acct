@@ -3,10 +3,13 @@
     "version": "1.0.0",
     "description": "Stripe Connect Multi-Account Reporting Application",
     "scripts": {
-        "build": "cd client && npm install && npm run build && cd ../server && npm install && npm run build",
+        "build": "npm run clean && npm run install-all && npm run build-client && npm run build-server",
+        "build-client": "cd client && npm run build",
+        "build-server": "cd server && npm run build",
         "start": "cd server && npm start",
         "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
-        "install-all": "npm install && cd client && npm install && cd ../server && npm install"
+        "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+        "clean": "rm -rf node_modules client/node_modules server/node_modules"
     },
     "devDependencies": {
         "concurrently": "^8.2.2"
