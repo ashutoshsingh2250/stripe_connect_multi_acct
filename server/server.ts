@@ -6,6 +6,7 @@ dotenv.config();
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -45,10 +46,34 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     });
 });
 
-// 404 handler
-app.use('*', (_req: Request, res: Response) => {
-    res.status(404).json({ error: 'Route not found' });
-});
+// Serve static files from React build in production
+if (process.env['NODE_ENV'] === 'production') {
+    const clientBuildPath = path.join(__dirname, '../client/build');
+
+    // Check if build directory exists
+    if (require('fs').existsSync(clientBuildPath)) {
+        // Serve static files from the React build
+        app.use(express.static(clientBuildPath));
+
+        // Handle React routing, return all requests to React app
+        app.get('*', (_req, res) => {
+            res.sendFile(path.join(clientBuildPath, 'index.html'));
+        });
+    } else {
+        console.warn('⚠️  Client build directory not found. API-only mode.');
+        console.log('📱 To serve the frontend, build the client and place it in client/build/');
+
+        // 404 handler for API-only mode
+        app.use('*', (_req: Request, res: Response) => {
+            res.status(404).json({ error: 'Route not found' });
+        });
+    }
+} else {
+    // 404 handler for development mode
+    app.use('*', (_req: Request, res: Response) => {
+        res.status(404).json({ error: 'Route not found' });
+    });
+}
 
 const serverInstance = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
