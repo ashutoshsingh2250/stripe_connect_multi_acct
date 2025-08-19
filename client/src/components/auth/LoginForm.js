@@ -104,18 +104,6 @@ const LoginForm = ({ onLoginSuccess }) => {
                             {loading ? 'Signing In...' : 'Sign In'}
                         </Button>
                     </Box>
-
-                    <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                        <Typography variant="caption" display="block" align="center" color="textSecondary">
-                            Demo Credentials:
-                        </Typography>
-                        <Typography variant="caption" display="block" align="center">
-                            Username: admin | Password: admin123
-                        </Typography>
-                        <Typography variant="caption" display="block" align="center">
-                            Username: user | Password: password
-                        </Typography>
-                    </Box>
                 </Paper>
             </Box>
         </Container>
