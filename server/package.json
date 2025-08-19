@@ -8,6 +8,7 @@
         "dev": "nodemon --exec ts-node server.ts",
         "build": "tsc",
         "build:watch": "tsc --watch",
+        "postinstall": "npm run build",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [
