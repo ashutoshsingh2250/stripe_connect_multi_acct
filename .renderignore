@@ -5,5 +5,4 @@ server/node_modules/
 .env
 *.log
 .DS_Store
-client/build/
-server/dist/
+README.md
