@@ -3,10 +3,55 @@ import { validateJWT, validateStripeKeys } from '../middleware/auth';
 import stripeService from '../services/stripeService';
 import emailService from '../services/emailService';
 import XLSX from 'xlsx';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 import moment from 'moment';
 import { AuthenticatedRequest } from '../types';
 
 const router = Router();
+
+// Helper function to create truly password-protected ZIP files using system zip command
+async function createPasswordProtectedZip(
+    fileBuffer: Buffer,
+    filename: string,
+    password: string
+): Promise<Buffer> {
+    const execAsync = promisify(exec);
+
+    try {
+        // Create temporary directory and files
+        const tempDir = path.join(__dirname, '../temp');
+        const tempFilePath = path.join(tempDir, filename);
+        const tempZipPath = path.join(tempDir, 'temp_' + Date.now() + '.zip');
+
+        // Ensure temp directory exists
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        // Write file to temp directory
+        fs.writeFileSync(tempFilePath, fileBuffer);
+
+        // Create password-protected ZIP using system zip command
+        // Use -j flag to junk (ignore) directory paths and only zip the file
+        const zipCommand = `zip -j -P "${password}" "${tempZipPath}" "${tempFilePath}"`;
+        await execAsync(zipCommand);
+
+        // Read the ZIP file
+        const zipBuffer = fs.readFileSync(tempZipPath);
+
+        // Clean up temporary files
+        fs.unlinkSync(tempFilePath);
+        fs.unlinkSync(tempZipPath);
+
+        return zipBuffer;
+    } catch (error) {
+        console.error('Error creating password-protected ZIP:', error);
+        throw new Error('Failed to create password-protected ZIP file');
+    }
+}
 
 // CSV Export endpoint
 router.post(
@@ -119,14 +164,24 @@ router.post(
                 .map(row => row.map(cell => `"${cell}"`).join(','))
                 .join('\n');
 
-            // Return JSON response with CSV content for frontend processing
-            return res.json({
-                success: true,
-                data: csvContent,
-                filename: `stripe-report-${startDate}-${endDate}.csv`,
-                contentType: 'text/csv',
-                transactionCount: transactions.length,
-            });
+            // Create password-protected ZIP file containing the CSV file
+            const zipPassword = 'stripe2024!';
+            const csvBuffer = Buffer.from(csvContent, 'utf-8');
+            const zipBuffer = await createPasswordProtectedZip(
+                csvBuffer,
+                `stripe-report-${startDate}-${endDate}.csv`,
+                zipPassword
+            );
+
+            // Send ZIP file directly as binary download
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="stripe-report-${startDate}-${endDate}-PROTECTED.csv.zip"`
+            );
+            res.setHeader('Content-Length', zipBuffer.length.toString());
+
+            return res.send(zipBuffer);
         } catch (error) {
             console.error('Error exporting CSV:', error);
             return res.status(500).json({
@@ -230,9 +285,13 @@ router.post(
                 'Total Amount': (tx.totals_amount / 100).toFixed(2),
             }));
 
-            // Generate Excel file
+            // Generate Excel file with XLSX - clean and simple data only
             const worksheet = XLSX.utils.json_to_sheet(xlsData);
             const workbook = XLSX.utils.book_new();
+
+            // Define ZIP password for the ZIP file protection
+            const zipPassword = 'stripe2024!';
+
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Stripe Report');
 
             // Generate Excel buffer
@@ -241,23 +300,22 @@ router.post(
                 type: 'buffer',
             });
 
-            // Return Excel file
-            res.setHeader(
-                'Content-Type',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            );
-            res.setHeader(
-                'Content-Disposition',
-                `attachment; filename="stripe-report-${startDate}-${endDate}.xlsx"`
+            // Create password-protected ZIP file containing the Excel file
+            const zipBuffer = await createPasswordProtectedZip(
+                excelBuffer,
+                `stripe-report-${startDate}-${endDate}.xlsx`,
+                zipPassword
             );
 
-            return res.json({
-                success: true,
-                data: excelBuffer.toString('base64'), // Send as base64 for frontend processing
-                filename: `stripe-report-${startDate}-${endDate}.xlsx`,
-                contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                transactionCount: transactions.length,
-            });
+            // Send ZIP file directly as binary download
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="stripe-report-${startDate}-${endDate}-PROTECTED.zip"`
+            );
+            res.setHeader('Content-Length', zipBuffer.length.toString());
+
+            return res.send(zipBuffer);
         } catch (error) {
             console.error('Error exporting XLS:', error);
             return res.status(500).json({
@@ -507,15 +565,24 @@ router.post(
                 .map(row => row.map(cell => `"${cell}"`).join(','))
                 .join('\n');
 
-            // Return CSV content for Google Sheets import
-            return res.json({
-                success: true,
-                data: csvContent,
-                filename: `stripe-report-${startDate}-${endDate}-google-sheets.csv`,
-                contentType: 'text/csv',
-                transactionCount: transactions.length,
-                message: `CSV file ready for Google Sheets import. Contains ${transactions.length} daily summaries.`,
-            });
+            // Create password-protected ZIP file containing the CSV file for Google Sheets
+            const zipPassword = 'stripe2024!';
+            const csvBuffer = Buffer.from(csvContent, 'utf-8');
+            const zipBuffer = await createPasswordProtectedZip(
+                csvBuffer,
+                `stripe-report-${startDate}-${endDate}-google-sheets.csv`,
+                zipPassword
+            );
+
+            // Send ZIP file directly as binary download
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="stripe-report-${startDate}-${endDate}-google-sheets-PROTECTED.zip"`
+            );
+            res.setHeader('Content-Length', zipBuffer.length.toString());
+
+            return res.send(zipBuffer);
         } catch (error) {
             console.error('Error exporting to Google Sheets:', error);
             return res.status(500).json({

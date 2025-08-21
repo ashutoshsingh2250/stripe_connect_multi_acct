@@ -87,122 +87,115 @@ export const useReport = () => {
             setExportLoading(true);
             setError(null);
 
-                    // Prepare encrypted headers for export functions (only Stripe keys, no auth token)
-        const headers = {
-            'x-secret-key': encryptSecretKey(formData.secretKey),
-            'x-public-key': encryptPublicKey(formData.publicKey),
-        };
+            // Prepare encrypted headers for export functions (only Stripe keys, no auth token)
+            const headers = {
+                'x-secret-key': encryptSecretKey(formData.secretKey),
+                'x-public-key': encryptPublicKey(formData.publicKey),
+            };
 
             let response;
             if (format === 'csv') {
-                response = await apiService.exportToCSV(formData.connectedAccountId, {
-                    start_date: formData.startDate,
-                    end_date: formData.endDate,
-                    timezone: formData.timezone,
-                    period: formData.period,
-                }, headers);
+                response = await apiService.exportToCSV(
+                    formData.connectedAccountId,
+                    {
+                        start_date: formData.startDate,
+                        end_date: formData.endDate,
+                        timezone: formData.timezone,
+                        period: formData.period,
+                    },
+                    headers
+                );
             } else if (format === 'xls' || format === 'xlsx') {
-                response = await apiService.exportToXLS(formData.connectedAccountId, {
-                    start_date: formData.startDate,
-                    end_date: formData.endDate,
-                    timezone: formData.timezone,
-                    period: formData.period,
-                }, headers);
+                response = await apiService.exportToXLS(
+                    formData.connectedAccountId,
+                    {
+                        start_date: formData.startDate,
+                        end_date: formData.endDate,
+                        timezone: formData.timezone,
+                        period: formData.period,
+                    },
+                    headers
+                );
             } else if (format === 'sheets') {
-                response = await apiService.exportToGoogleSheets(formData.connectedAccountId, {
-                    start_date: formData.startDate,
-                    end_date: formData.endDate,
-                    timezone: formData.timezone,
-                    period: formData.period,
-                }, headers);
+                response = await apiService.exportToGoogleSheets(
+                    formData.connectedAccountId,
+                    {
+                        start_date: formData.startDate,
+                        end_date: formData.endDate,
+                        timezone: formData.timezone,
+                        period: formData.period,
+                    },
+                    headers
+                );
             } else if (format === 'email') {
                 if (!email) {
                     throw new Error('Email address is required for email export');
                 }
 
-                response = await apiService.exportToEmail(formData.connectedAccountId, {
-                    start_date: formData.startDate,
-                    end_date: formData.endDate,
-                    timezone: formData.timezone,
-                    period: formData.period,
-                    email: email,
-                }, headers);
+                response = await apiService.exportToEmail(
+                    formData.connectedAccountId,
+                    {
+                        start_date: formData.startDate,
+                        end_date: formData.endDate,
+                        timezone: formData.timezone,
+                        period: formData.period,
+                        email: email,
+                    },
+                    headers
+                );
             } else {
                 throw new Error(`Unsupported export format: ${format}`);
             }
 
-            if (response.success) {
-                // Handle file download
-                if (format === 'csv') {
-                    // Create blob from CSV content
-                    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+            // Handle file download for binary downloads (CSV, Excel, Google Sheets)
+            if (format === 'csv' || format === 'xls' || format === 'xlsx' || format === 'sheets') {
+                // For binary downloads, response.data is a Blob
+                if (response && response.data) {
+                    const blob = response.data;
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download =
-                        response.filename ||
-                        `stripe-report-${formData.startDate}-${formData.endDate}.csv`;
+
+                    // Get filename from Content-Disposition header or create default
+                    const contentDisposition = response.headers['content-disposition'];
+                    let filename;
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(
+                            /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+                        );
+                        if (filenameMatch && filenameMatch[1]) {
+                            filename = filenameMatch[1].replace(/['"]/g, '');
+                        }
+                    }
+
+                    // Fallback to default filename
+                    if (!filename) {
+                        if (format === 'csv') {
+                            filename = `stripe-report-${formData.startDate}-${formData.endDate}-PROTECTED.csv.zip`;
+                        } else if (format === 'xls' || format === 'xlsx') {
+                            filename = `stripe-report-${formData.startDate}-${formData.endDate}-PROTECTED.zip`;
+                        } else if (format === 'sheets') {
+                            filename = `stripe-report-${formData.startDate}-${formData.endDate}-google-sheets-PROTECTED.zip`;
+                        }
+                    }
+
+                    a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
-                } else if (format === 'xls' || format === 'xlsx') {
-                    // Handle base64-encoded Excel data from backend
-                    if (response.data) {
-                        // Convert base64 to binary array
-                        const binaryString = atob(response.data);
-                        const bytes = new Uint8Array(binaryString.length);
-                        for (let i = 0; i < binaryString.length; i++) {
-                            bytes[i] = binaryString.charCodeAt(i);
-                        }
-
-                        // Create blob and download
-                        const blob = new Blob([bytes], {
-                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download =
-                            response.filename ||
-                            `stripe-report-${formData.startDate}-${formData.endDate}.xlsx`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    } else {
-                        throw new Error('No Excel data received from server');
-                    }
-                } else if (format === 'sheets') {
-                    // Handle Google Sheets export (CSV format for easy import)
-                    if (response.data) {
-                        // Create blob from CSV content
-                        const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download =
-                            response.filename ||
-                            `stripe-report-${formData.startDate}-${formData.endDate}-google-sheets.csv`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    } else {
-                        throw new Error('No Google Sheets data received from server');
-                    }
-                } else if (format === 'email') {
-                    // Handle email export response
-                    if (response.success) {
-                        // Show success message (you can enhance this with a toast notification)
-                        // You could set a success state here to show a success message to the user
-                    } else {
-                        throw new Error(response.error || 'Failed to send email export');
-                    }
+                } else {
+                    throw new Error('No file data received from server');
                 }
-            } else {
-                console.error('Export failed:', response.error);
-                throw new Error(response.error || 'Failed to export report');
+            } else if (format === 'email') {
+                // Handle email export response (still JSON)
+                if (response && response.success) {
+                    // Show success message (you can enhance this with a toast notification)
+                    // You could set a success state here to show a success message to the user
+                    console.log('Email export successful:', response.message);
+                } else {
+                    throw new Error(response?.error || 'Failed to send email export');
+                }
             }
         } catch (error) {
             console.error('Error exporting report:', error);

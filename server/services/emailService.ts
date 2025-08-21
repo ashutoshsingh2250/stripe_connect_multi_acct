@@ -1,9 +1,53 @@
 import nodemailer from 'nodemailer';
 import * as XLSX from 'xlsx';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 import { TransactionData } from '../types';
 
 class EmailService {
     private transporter: nodemailer.Transporter | null = null;
+
+    // Helper function to create password-protected ZIP files
+    private async createPasswordProtectedZip(
+        fileBuffer: Buffer,
+        filename: string
+    ): Promise<Buffer> {
+        const execAsync = promisify(exec);
+
+        try {
+            // Create temporary directory and files
+            const tempDir = path.join(__dirname, '../temp');
+            const tempFilePath = path.join(tempDir, filename);
+            const tempZipPath = path.join(tempDir, 'temp_' + Date.now() + '.zip');
+
+            // Ensure temp directory exists
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+
+            // Write file to temp directory
+            fs.writeFileSync(tempFilePath, fileBuffer);
+
+            // Create password-protected ZIP using system zip command
+            // Use -j flag to junk (ignore) directory paths and only zip the file
+            const zipCommand = `zip -j -P "stripe2024!" "${tempZipPath}" "${tempFilePath}"`;
+            await execAsync(zipCommand);
+
+            // Read the ZIP file
+            const zipBuffer = fs.readFileSync(tempZipPath);
+
+            // Clean up temporary files
+            fs.unlinkSync(tempFilePath);
+            fs.unlinkSync(tempZipPath);
+
+            return zipBuffer;
+        } catch (error) {
+            console.error('Error creating password-protected ZIP:', error);
+            throw new Error('Failed to create password-protected ZIP file');
+        }
+    }
 
     private createTransporter(): nodemailer.Transporter {
         // Create transporter using environment variables
@@ -96,7 +140,8 @@ class EmailService {
                         </ul>
                     </div>
 
-                    <p>The report is attached as an Excel file (.xlsx) for your convenience.</p>
+                    <p>The report is attached as a password-protected ZIP file (.zip) for your security.</p>
+                    <p>Please contact your administrator for the password to extract the Excel report inside.</p>
 
                     <p>If you have any questions about this report, please don't hesitate to contact us.</p>
 
@@ -122,14 +167,20 @@ class EmailService {
         }
     ): Promise<boolean> {
         try {
-            // Generate Excel file as attachment
+            // Generate Excel file first
             const excelBuffer = this.generateExcelBuffer(transactions);
+
+            // Create password-protected ZIP file containing the Excel
+            const zipBuffer = await this.createPasswordProtectedZip(
+                excelBuffer,
+                `stripe-report-${reportInfo.startDate}-${reportInfo.endDate}.xlsx`
+            );
 
             // Create email content
             const subject = `Stripe Connect Report - ${reportInfo.startDate} to ${reportInfo.endDate}`;
             const htmlContent = this.generateEmailHTML(reportInfo);
 
-            // Send email with attachment
+            // Send email with password-protected ZIP attachment
             const mailOptions = {
                 from: process.env['SMTP_USER'],
                 to: toEmail,
@@ -137,12 +188,12 @@ class EmailService {
                 html: htmlContent,
                 attachments: [
                     {
-                        filename: `stripe-report-${reportInfo.startDate}-${reportInfo.endDate}.xlsx`,
-                        content: excelBuffer,
-                        contentType:
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        filename: `stripe-report-${reportInfo.startDate}-${reportInfo.endDate}-PROTECTED.zip`,
+                        content: zipBuffer,
+                        contentType: 'application/zip',
                     },
                 ],
+                text: `Your Stripe Connect report is attached as a password-protected ZIP file. Please contact your administrator for the password to extract the Excel file inside.`,
             };
 
             await this.getTransporter().sendMail(mailOptions);

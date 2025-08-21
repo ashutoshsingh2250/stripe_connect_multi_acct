@@ -141,16 +141,18 @@ export const apiService = {
         const response = await api.post(API_ENDPOINTS.EXPORT_CSV(accountId), data, {
             headers,
             timeout: 300000, // 5 minutes for export operations
+            responseType: 'blob', // Handle binary data
         });
-        return response.data;
+        return response;
     },
 
     exportToXLS: async (accountId, data, headers) => {
         const response = await api.post(API_ENDPOINTS.EXPORT_XLS(accountId), data, {
             headers,
             timeout: 300000, // 5 minutes for export operations
+            responseType: 'blob', // Handle binary data
         });
-        return response.data;
+        return response;
     },
 
     exportToEmail: async (accountId, data, headers) => {
@@ -165,8 +167,9 @@ export const apiService = {
         const response = await api.post(API_ENDPOINTS.EXPORT_GOOGLE_SHEETS(accountId), data, {
             headers,
             timeout: 300000, // 5 minutes for export operations
+            responseType: 'blob', // Handle binary data
         });
-        return response.data;
+        return response;
     },
 };
 

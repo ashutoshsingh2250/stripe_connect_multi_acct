@@ -14,5 +14,9 @@
     },
     "engines": {
         "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "officegen": "^0.6.5",
+        "xlsx-populate": "^1.21.0"
     }
 }
