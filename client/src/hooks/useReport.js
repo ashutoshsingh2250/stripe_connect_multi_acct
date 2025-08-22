@@ -116,6 +116,17 @@ export const useReport = () => {
                     },
                     headers
                 );
+            } else if (format === 'pdf') {
+                response = await apiService.exportToPDF(
+                    formData.connectedAccountId,
+                    {
+                        start_date: formData.startDate,
+                        end_date: formData.endDate,
+                        timezone: formData.timezone,
+                        period: formData.period,
+                    },
+                    headers
+                );
             } else if (format === 'sheets') {
                 response = await apiService.exportToGoogleSheets(
                     formData.connectedAccountId,
@@ -147,8 +158,14 @@ export const useReport = () => {
                 throw new Error(`Unsupported export format: ${format}`);
             }
 
-            // Handle file download for binary downloads (CSV, Excel, Google Sheets)
-            if (format === 'csv' || format === 'xls' || format === 'xlsx' || format === 'sheets') {
+            // Handle file download for binary downloads (CSV, Excel, PDF, Google Sheets)
+            if (
+                format === 'csv' ||
+                format === 'xls' ||
+                format === 'xlsx' ||
+                format === 'pdf' ||
+                format === 'sheets'
+            ) {
                 // For binary downloads, response.data is a Blob
                 if (response && response.data) {
                     const blob = response.data;
@@ -174,6 +191,8 @@ export const useReport = () => {
                             filename = `stripe-report-${formData.startDate}-${formData.endDate}-PROTECTED.csv.zip`;
                         } else if (format === 'xls' || format === 'xlsx') {
                             filename = `stripe-report-${formData.startDate}-${formData.endDate}-PROTECTED.zip`;
+                        } else if (format === 'pdf') {
+                            filename = `stripe-report-${formData.startDate}-${formData.endDate}-PROTECTED.pdf`;
                         } else if (format === 'sheets') {
                             filename = `stripe-report-${formData.startDate}-${formData.endDate}-google-sheets-PROTECTED.zip`;
                         }

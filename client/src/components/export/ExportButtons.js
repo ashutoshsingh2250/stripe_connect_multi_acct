@@ -4,11 +4,13 @@ import {
     Download as DownloadIcon,
     Email as EmailIcon,
     TableChart as TableChartIcon,
+    PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 
 const ExportButtons = ({
     onExportCSV,
     onExportXLS,
+    onExportPDF,
     onEmailExport,
     onExportGoogleSheets,
     loading,
@@ -16,7 +18,7 @@ const ExportButtons = ({
     hasCredentials,
 }) => {
     return (
-        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+        <Paper elevation={2.5} sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
                 Export Options
             </Typography>
@@ -51,8 +53,8 @@ const ExportButtons = ({
                 </Box>
             )}
 
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+            <Grid container spacing={2.4}>
+                <Grid item xs={12} md={2.4}>
                     <Button
                         fullWidth
                         variant="outlined"
@@ -61,11 +63,11 @@ const ExportButtons = ({
                         disabled={loading || !hasCredentials}
                         sx={{ py: 1.5 }}
                     >
-                        {loading ? 'Processing...' : 'Export CSV'}
+                        {loading ? 'Processing...' : ' CSV'}
                     </Button>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={2.4}>
                     <Button
                         fullWidth
                         variant="outlined"
@@ -74,11 +76,24 @@ const ExportButtons = ({
                         disabled={loading || !hasCredentials}
                         sx={{ py: 1.5 }}
                     >
-                        {loading ? 'Processing...' : 'Export Excel'}
+                        {loading ? 'Processing...' : ' Excel'}
                     </Button>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={2.4}>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<PdfIcon />}
+                        onClick={onExportPDF}
+                        disabled={loading || !hasCredentials}
+                        sx={{ py: 1.5 }}
+                    >
+                        {loading ? 'Processing...' : ' PDF'}
+                    </Button>
+                </Grid>
+
+                <Grid item xs={12} md={2.4}>
                     <Button
                         fullWidth
                         variant="outlined"
@@ -87,11 +102,11 @@ const ExportButtons = ({
                         disabled={loading || !hasCredentials}
                         sx={{ py: 1.5 }}
                     >
-                        {loading ? 'Processing...' : 'Email Export'}
+                        {loading ? 'Processing...' : ' Export'}
                     </Button>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={2.4} display="flex" justifyContent="center">
                     <Button
                         fullWidth
                         variant="outlined"
@@ -100,15 +115,16 @@ const ExportButtons = ({
                         disabled={loading || !hasCredentials}
                         sx={{ py: 1.5 }}
                     >
-                        {loading ? 'Processing...' : 'Export Google Sheets'}
+                        {loading ? 'Processing...' : ' Google Sheets'}
                     </Button>
                 </Grid>
             </Grid>
 
-            <Box mt={2}>
+            <Box mt={2.5}>
                 <Typography variant="caption" color="textSecondary">
-                    Choose your preferred export format. CSV and Excel files will be downloaded
-                    directly, while email exports will be sent to your specified email address.
+                    Choose your preferred export format. CSV, Excel, and PDF files will be
+                    downloaded directly, while email exports will be sent to your specified email
+                    address.
                 </Typography>
 
                 {loading && (

@@ -62,6 +62,7 @@ export const API_ENDPOINTS = {
     // Export
     EXPORT_CSV: accountId => `/api/export/csv/${accountId}`,
     EXPORT_XLS: accountId => `/api/export/xls/${accountId}`,
+    EXPORT_PDF: accountId => `/api/export/pdf/${accountId}`,
     EXPORT_EMAIL: accountId => `/api/export/email/${accountId}`,
     EXPORT_GOOGLE_SHEETS: accountId => `/api/export/sheets/${accountId}`,
 };
@@ -148,6 +149,15 @@ export const apiService = {
 
     exportToXLS: async (accountId, data, headers) => {
         const response = await api.post(API_ENDPOINTS.EXPORT_XLS(accountId), data, {
+            headers,
+            timeout: 300000, // 5 minutes for export operations
+            responseType: 'blob', // Handle binary data
+        });
+        return response;
+    },
+
+    exportToPDF: async (accountId, data, headers) => {
+        const response = await api.post(API_ENDPOINTS.EXPORT_PDF(accountId), data, {
             headers,
             timeout: 300000, // 5 minutes for export operations
             responseType: 'blob', // Handle binary data

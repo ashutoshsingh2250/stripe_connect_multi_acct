@@ -262,12 +262,15 @@ function App() {
                 <ExportButtons
                     onExportCSV={() => handleExport('csv')}
                     onExportXLS={() => handleExport('xls')}
+                    onExportPDF={() => handleExport('pdf')}
                     onEmailExport={handleEmailExport}
                     onExportGoogleSheets={() => handleExport('sheets')}
                     loading={exportLoading}
                     hasReport={!!report}
                     hasCredentials={
-                        !!formData.secretKey && !!formData.publicKey && !!formData.connectedAccountId
+                        !!formData.secretKey &&
+                        !!formData.publicKey &&
+                        !!formData.connectedAccountId
                     }
                 />
 
