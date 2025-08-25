@@ -26,6 +26,8 @@ import { encryptSecretKey, encryptPublicKey } from './utils/encryption';
 import LoginForm from './components/auth/LoginForm';
 import ReportForm from './components/forms/ReportForm';
 import ReportDisplay from './components/reports/ReportDisplay';
+import StandardReport from './components/reports/StandardReport';
+import ReportToggle from './components/reports/ReportToggle';
 import ExportButtons from './components/export/ExportButtons';
 import EmailExportModal from './components/export/EmailExportModal';
 import LoadingSpinner from './components/common/LoadingSpinner';
@@ -79,6 +81,9 @@ function App() {
         generateReport,
         exportReport,
     } = useReport();
+
+    // Report type state for toggling between Standard and Detailed views
+    const [reportType, setReportType] = useState('standard'); // 'standard' or 'detailed'
 
     // Check authentication status on app load
     useEffect(() => {
@@ -204,6 +209,13 @@ function App() {
         }
     };
 
+    // Handle report type toggle
+    const handleReportTypeChange = (event, newReportType) => {
+        if (newReportType !== null) {
+            setReportType(newReportType);
+        }
+    };
+
     // Show loading spinner while checking authentication
     if (authLoading) {
         return (
@@ -246,6 +258,10 @@ function App() {
                 <Typography variant="h4" component="h1" gutterBottom>
                     Transaction Reports
                 </Typography>
+                <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+                    Generate Standard Reports with charts and insights, or Detailed Reports with
+                    transaction data and export options
+                </Typography>
 
                 <ReportForm
                     formData={formData}
@@ -274,22 +290,43 @@ function App() {
                     }
                 />
 
+                {/* Report Type Toggle - only show when report exists */}
+                {report && (
+                    <ReportToggle
+                        reportType={reportType}
+                        onReportTypeChange={handleReportTypeChange}
+                        disabled={loading}
+                    />
+                )}
+
                 {/* Show Generate Report Loading Spinner below export options */}
                 {loading && <LoadingSpinner />}
                 {error && <ErrorMessage error={error} onClose={() => {}} />}
 
                 {/* Show Report Display only when report exists */}
                 {report && (
-                    <ReportDisplay
-                        report={report}
-                        currentPage={report.pagination?.currentPage || 1}
-                        itemsPerPage={report.pagination?.itemsPerPage || 10}
-                        onPageChange={newPage =>
-                            generateReport(formData, newPage, report.pagination?.itemsPerPage || 10)
-                        }
-                        onItemsPerPageChange={newLimit => generateReport(formData, 1, newLimit)}
-                        paginationLoading={paginationLoading}
-                    />
+                    <>
+                        {reportType === 'standard' ? (
+                            <StandardReport report={report} formData={formData} />
+                        ) : (
+                            <ReportDisplay
+                                report={report}
+                                currentPage={report.pagination?.currentPage || 1}
+                                itemsPerPage={report.pagination?.itemsPerPage || 10}
+                                onPageChange={newPage =>
+                                    generateReport(
+                                        formData,
+                                        newPage,
+                                        report.pagination?.itemsPerPage || 10
+                                    )
+                                }
+                                onItemsPerPageChange={newLimit =>
+                                    generateReport(formData, 1, newLimit)
+                                }
+                                paginationLoading={paginationLoading}
+                            />
+                        )}
+                    </>
                 )}
 
                 {/* Email Export Modal */}
