@@ -3,11 +3,21 @@
     "version": "1.0.0",
     "description": "Stripe Connect Multi-Account Reporting Application",
     "scripts": {
-        "build": "cd client && npm install && npm run build && cd ../server && npm install && npm run build",
-        "start": "cd server && npm start",
-        "start:prod": "cd server && npm start",
-        "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
-        "install-all": "npm install && cd client && npm install && cd ../server && npm install"
+        "build": "cd client && npm install && npm run build && cd ../server-nest && npm install && npm run build",
+        "start": "cd server-nest && npm start",
+        "start:prod": "cd server-nest && npm start",
+        "dev": "concurrently \"cd server-nest && npm run start:dev\" \"cd client && npm start\"",
+        "install-all": "npm install && cd client && npm install && cd ../server-nest && npm install",
+        "render-build": "cd server-nest && npm install && npm run build",
+        "render-start": "cd server-nest && npm run start:prod",
+        "setup": "./setup.sh",
+        "setup:win": "setup.bat",
+        "clean": "rm -rf node_modules package-lock.json client/node_modules client/package-lock.json server-nest/node_modules server-nest/package-lock.json",
+        "clean:win": "rmdir /s /q node_modules && del package-lock.json && rmdir /s /q client\\node_modules && del client\\package-lock.json && rmdir /s /q server-nest\\node_modules && del server-nest\\package-lock.json",
+        "test": "cd server-nest && npm run test",
+        "test:e2e": "cd server-nest && npm run test:e2e",
+        "lint": "cd server-nest && npm run lint",
+        "format": "cd server-nest && npm run format"
     },
     "devDependencies": {
         "concurrently": "^8.2.2"
