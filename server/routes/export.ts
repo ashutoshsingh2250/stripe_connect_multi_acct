@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import { AuthenticatedRequest } from '../types';
+import { pool } from '../utils/dbconfig';
 
 const router = Router();
 
@@ -898,5 +899,18 @@ router.post(
         }
     }
 );
+
+async function testConnection() {
+    try {
+        const result = await pool.query('SELECT NOW()');
+        console.log('Connected to PostgreSQL! Current time:', result.rows[0].now);
+    } catch (err) {
+        console.error('Database connection error:', err);
+    } finally {
+        // await pool.end(); // close the pool when done
+    }
+}
+
+testConnection();
 
 export default router;

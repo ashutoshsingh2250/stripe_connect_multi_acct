@@ -37,6 +37,8 @@ const validateJWT = async (
         // Set user info from JWT
         req.user = {
             username: decoded.username,
+            stripeId: decoded.stripeId,
+            isMaster: Boolean(decoded.isMaster),
             connectedAccountId: '',
             secretKey: '',
             publicKey: '',

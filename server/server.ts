@@ -9,9 +9,11 @@ import helmet from 'helmet';
 import path from 'path';
 
 // Import routes
-import authRoutes from './routes/auth';
+// import authRoutes from './routes/auth';
+import authRoutes from './routes/pgauth'; // switch to pg-based auth
 import reportRoutes from './routes/reports';
 import exportRoutes from './routes/export';
+import { importStripeAccounts } from './routes/importUser';
 
 const app = express();
 const PORT: string | number = process.env['PORT'] || 5000;
@@ -33,9 +35,10 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
+// app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -53,7 +56,7 @@ if (process.env['NODE_ENV'] === 'production') {
         path.join(__dirname, '../client/build'),
         path.join(__dirname, '../../client/build'),
         path.join(process.cwd(), 'client/build'),
-        path.join(process.cwd(), '../client/build')
+        path.join(process.cwd(), '../client/build'),
     ];
 
     let clientBuildPath = null;
@@ -105,3 +108,14 @@ serverInstance.headersTimeout = 610000;
 // Optional: keep-alive timeout for persistent connections
 // @ts-ignore - keepAliveTimeout is a Node.js HTTP server property
 serverInstance.keepAliveTimeout = 65000;
+
+importStripeAccounts()
+    .then(() => {
+        console.log('Stripe accounts imported.');
+    })
+    .catch(err => {
+        console.error('Failed to import accounts', err);
+        app.listen(3000, () =>
+            console.log('Server running without import on http://localhost:3000')
+        );
+    });

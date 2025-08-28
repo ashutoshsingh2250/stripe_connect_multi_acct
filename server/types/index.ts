@@ -44,6 +44,8 @@ export interface MultiAccountReportResponse {
 export interface AuthenticatedRequest extends Request {
     user?: {
         username?: string;
+        stripeId?: string;
+        isMaster?: boolean;
         connectedAccountId: string;
         secretKey: string;
         publicKey: string;
@@ -55,4 +57,16 @@ export interface TimezoneResponse {
     timezones: string[];
     total: number;
     note: string;
+}
+
+export interface User {
+  id?: number;
+  stripeId : string;
+  username: string;
+  email?: string;
+  name?: string;
+  passwordHash?: string;             
+  rawData?: Record<string, any>;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

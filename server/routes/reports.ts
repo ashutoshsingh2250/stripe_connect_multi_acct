@@ -44,8 +44,15 @@ router.get(
     validateStripeKeys,
     async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
         try {
-            const { secretKey } = req.user!;
-            const accounts = await stripeService.getMultipleAccounts(secretKey);
+            const { secretKey, isMaster, stripeId } = req.user!;
+            let accounts;
+            if (isMaster) {
+                accounts = await stripeService.getMultipleAccounts(secretKey);
+            } else {
+                // Non-master: only their own connected account (stripeId)
+                const acct = await stripeService.getSingleAccount(secretKey, stripeId as string);
+                accounts = acct ? [acct] : [];
+            }
 
             return res.json({
                 success: true,
@@ -129,7 +136,11 @@ router.get(
             }
 
             // Parse account IDs (comma-separated)
-            const accountIdList = accountIds.split(',').map(id => id.trim());
+            let accountIdList = accountIds.split(',').map(id => id.trim());
+            // Enforce access: non-master may only request their own account
+            if (!req.user!.isMaster) {
+                accountIdList = [req.user!.stripeId as string];
+            }
             if (accountIdList.length === 0) {
                 return res.status(400).json({
                     error: 'Bad Request',

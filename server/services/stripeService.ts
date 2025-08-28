@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import moment from 'moment-timezone';
 import { TransactionData } from '../types';
+// import fs from 'fs';
 
 class StripeService {
     // No longer requiring Stripe keys in environment variables
@@ -27,6 +28,25 @@ class StripeService {
         } catch (error) {
             console.error('Error fetching multiple accounts:', error);
             throw error;
+        }
+    }
+
+    // Get a single account's basic info
+    async getSingleAccount(secretKey: string, accountId: string): Promise<any | null> {
+        try {
+            const stripe = new Stripe(secretKey);
+            const account = await stripe.accounts.retrieve(accountId);
+            return {
+                id: account.id,
+                business_type: account.business_type || 'individual',
+                country: account.country || 'US',
+                charges_enabled: account.charges_enabled || false,
+                payouts_enabled: account.payouts_enabled || false,
+                email: account.email || '',
+                type: account.type || 'express',
+            };
+        } catch (_err) {
+            return null;
         }
     }
 
@@ -156,7 +176,9 @@ class StripeService {
         } catch (error) {
             console.error('Error fetching transactions:', error);
             throw new Error(
-                `Failed to fetch transactions: ${error instanceof Error ? error.message : 'Unknown error'}`
+                `Failed to fetch transactions: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                }`
             );
         }
     }
