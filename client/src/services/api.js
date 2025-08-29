@@ -65,6 +65,9 @@ export const API_ENDPOINTS = {
     EXPORT_PDF: accountId => `/api/export/pdf/${accountId}`,
     EXPORT_EMAIL: accountId => `/api/export/email/${accountId}`,
     EXPORT_GOOGLE_SHEETS: accountId => `/api/export/sheets/${accountId}`,
+
+    // Validation
+    VALIDATE_KEYS: '/api/validate-keys',
 };
 
 // Authentication functions

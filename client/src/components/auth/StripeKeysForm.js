@@ -10,6 +10,7 @@ import {
     CircularProgress,
 } from '@mui/material';
 import { encryptSecretKey, encryptPublicKey } from '../../utils/encryption';
+import { API_ENDPOINTS, api } from '../../services/api';
 
 const StripeKeysForm = ({ onKeysValidated }) => {
     const [formData, setFormData] = useState({
@@ -44,17 +45,10 @@ const StripeKeysForm = ({ onKeysValidated }) => {
             };
 
             // Call backend to validate keys and import accounts
-            const response = await fetch('http://localhost:5000/api/validate-keys', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(encryptedData),
-            });
+            const response = await api.post(API_ENDPOINTS.VALIDATE_KEYS, encryptedData);
+            const result = response.data;
 
-            const result = await response.json();
-
-            if (response.ok && result.success) {
+            if (result.success) {
                 // Store keys in localStorage
                 localStorage.setItem('stripePublicKey', formData.publicKey);
                 localStorage.setItem('stripeSecretKey', formData.secretKey);
