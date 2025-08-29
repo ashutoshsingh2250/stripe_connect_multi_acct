@@ -10,7 +10,7 @@ export const pool = new Pool({
     password: process.env['PG_PASS'],
     port: Number(process.env['PG_PORT']),
 });
-pool.on('error', err => {
+pool.on('error', (err: Error) => {
     console.error('Unexpected error on idle client', err);
     process.exit(-1);
 });
