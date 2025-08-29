@@ -10,7 +10,7 @@ export const pool = new Pool({
     password: process.env['PG_PASS'],
     port: Number(process.env['PG_PORT']),
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
     },
 });
 pool.on('error', (err: Error) => {
