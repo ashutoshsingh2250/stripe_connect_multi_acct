@@ -18,6 +18,7 @@
         "node": ">=18.0.0"
     },
     "dependencies": {
+        "@types/pg": "^8.15.5",
         "officegen": "^0.6.5",
         "xlsx-populate": "^1.21.0"
     }
