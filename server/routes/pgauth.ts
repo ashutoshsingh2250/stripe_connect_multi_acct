@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { findUserByUsername, validatePassword } from '../services/userService';
 
-
 const router = express.Router();
 
 // Login endpoint
@@ -38,7 +37,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         }
 
         const jwtSecret = process.env['JWT_SECRET'] || 'stripe-connect-jwt-secret-2025';
-        const isMaster = !user.stripeId; // if no stripeId, treat as master
+        const isMaster = user.stripeId && user.stripeId.startsWith('MASTER_ADMIN_'); // check for MASTER_ADMIN_ prefix
         const token = jwt.sign(
             {
                 id: user.id,
@@ -69,6 +68,78 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({
             error: 'Internal Server Error',
             message: 'Login failed',
+        });
+    }
+});
+
+// Logout endpoint
+router.post('/logout', async (_req: Request, res: Response): Promise<void> => {
+    try {
+        // For JWT-based auth, logout is typically handled client-side
+        // But we can add server-side logic here if needed (e.g., token blacklisting)
+
+        res.json({
+            message: 'Logout successful',
+            success: true,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Logout failed',
+        });
+    }
+});
+
+// Get current user info endpoint
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
+    try {
+        // Get the token from the Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'No valid token provided',
+            });
+            return;
+        }
+
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+        try {
+            // Verify the JWT token
+            const jwtSecret = process.env['JWT_SECRET'] || 'stripe-connect-jwt-secret-2025';
+            const decoded = jwt.verify(token, jwtSecret) as any;
+
+            if (!decoded.authenticated) {
+                res.status(401).json({
+                    error: 'Unauthorized',
+                    message: 'Invalid token',
+                });
+                return;
+            }
+
+            // Return user info from the decoded token
+            res.json({
+                authenticated: true,
+                user: {
+                    id: decoded.id,
+                    stripeId: decoded.stripeId,
+                    username: decoded.username,
+                    isMaster: decoded.isMaster,
+                },
+            });
+        } catch (jwtError) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Invalid or expired token',
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to get user info',
         });
     }
 });
