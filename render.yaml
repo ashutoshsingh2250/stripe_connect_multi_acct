@@ -2,6 +2,7 @@ services:
     - type: web
       name: stripe-connect-app
       env: node
+      branch: deployment-multiple-users
       buildCommand: npm install && npm run build:prod
       startCommand: npm start
       envVars:
