@@ -10,7 +10,8 @@ import {
     CircularProgress,
 } from '@mui/material';
 import { encryptSecretKey, encryptPublicKey } from '../../utils/encryption';
-import { API_ENDPOINTS, api } from '../../services/api';
+import { API_ENDPOINTS } from '../../services/api';
+import api from '../../services/api';
 
 const StripeKeysForm = ({ onKeysValidated }) => {
     const [formData, setFormData] = useState({
