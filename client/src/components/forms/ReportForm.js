@@ -27,13 +27,17 @@ const ReportForm = ({
     onGenerateReport,
     loading,
     timezones,
-    onFetchAccounts,
+
     accounts = [],
 }) => {
     const [selectedAccounts, setSelectedAccounts] = useState([]);
 
     // Initialize selected accounts when accounts are first loaded (but only if none are selected)
     useEffect(() => {
+        console.log('ReportForm: accounts changed:', accounts);
+        console.log('ReportForm: current selectedAccounts:', selectedAccounts);
+        console.log('ReportForm: formData.connectedAccountId:', formData.connectedAccountId);
+
         if (accounts.length > 0 && selectedAccounts.length === 0 && formData.connectedAccountId) {
             // If we have a connectedAccountId in form data, parse it and set selected accounts
             const accountIds = formData.connectedAccountId.split(',').filter(id => id.trim());
@@ -67,12 +71,6 @@ const ReportForm = ({
         onFormChange('connectedAccountId', accountIdsString);
     };
 
-    const handleFetchAccounts = async () => {
-        if (formData.secretKey && formData.publicKey) {
-            await onFetchAccounts();
-        }
-    };
-
     const clearAccountSelection = () => {
         setSelectedAccounts([]);
         onFormChange('connectedAccountId', '');
@@ -93,7 +91,8 @@ const ReportForm = ({
             </Typography>
 
             <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                Enter your Stripe Connect credentials first, then select the accounts you want to include in your report. Large date ranges may take several minutes to process.
+                Select the Stripe Connect accounts you want to include in your report. Large date
+                ranges may take several minutes to process.
             </Typography>
 
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -106,119 +105,76 @@ const ReportForm = ({
             </Alert>
 
             <Grid container spacing={3}>
-                {/* Public Key */}
-                <Grid item xs={12} md={3}>
-                    <TextField
-                        fullWidth
-                        label="Public Key"
-                        value={formData.publicKey}
-                        onChange={e => handleInputChange('publicKey', e.target.value)}
-                        placeholder="pk_test_51..."
-                        helperText="Your Stripe public key (starts with 'pk_test_' or 'pk_live_')"
-                        required
-                        type="password"
-                    />
-                </Grid>
-
-                {/* Secret Key */}
-                <Grid item xs={12} md={3}>
-                    <TextField
-                        fullWidth
-                        label="Secret Key"
-                        value={formData.secretKey}
-                        onChange={e => handleInputChange('secretKey', e.target.value)}
-                        placeholder="sk_test_51..."
-                        helperText="Your Stripe secret key (starts with 'sk_test_' or 'sk_live_')"
-                        required
-                        type="password"
-                    />
-                </Grid>
-
                 {/* Stripe Account Selection */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <FormControl fullWidth>
+                            <Select
+                                multiple
+                                value={selectedAccounts}
+                                onChange={handleAccountSelection}
+                                input={<OutlinedInput />}
+                                renderValue={selected => {
+                                    if (selected.length === 0) {
+                                        return (
+                                            <Typography color="textSecondary">
+                                                Select accounts...
+                                            </Typography>
+                                        );
+                                    }
+                                    return (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map(value => {
+                                                const account = accounts.find(
+                                                    acc => acc.id === value
+                                                );
+                                                const displayName =
+                                                    account?.email || account?.id || value;
+                                                return (
+                                                    <Chip
+                                                        key={value}
+                                                        label={displayName}
+                                                        size="small"
+                                                        variant="outlined"
+                                                    />
+                                                );
+                                            })}
+                                        </Box>
+                                    );
+                                }}
+                                displayEmpty
+                            >
+                                {accounts.map(account => {
+                                    // Create a display name for the account
+                                    const displayName = account.email || account.id;
+                                    const businessInfo = `${account.business_type} - ${account.country}`;
+
+                                    return (
+                                        <MenuItem key={account.id} value={account.id}>
+                                            <Checkbox
+                                                checked={selectedAccounts.indexOf(account.id) > -1}
+                                            />
+                                            <ListItemText
+                                                primary={displayName}
+                                                secondary={businessInfo}
+                                            />
+                                        </MenuItem>
+                                    );
+                                })}
+                            </Select>
+                        </FormControl>
+                        {selectedAccounts.length > 0 && (
                             <Button
                                 variant="outlined"
-                                onClick={handleFetchAccounts}
-                                disabled={!formData.secretKey || !formData.publicKey}
+                                color="secondary"
+                                onClick={clearAccountSelection}
                                 sx={{ minWidth: 'auto', px: 2 }}
                             >
-                                Fetch
+                                Clear
                             </Button>
-                            <FormControl fullWidth>
-                                <Select
-                                    multiple
-                                    value={selectedAccounts}
-                                    onChange={handleAccountSelection}
-                                    input={<OutlinedInput />}
-                                    renderValue={selected => {
-                                        if (selected.length === 0) {
-                                            return (
-                                                <Typography color="textSecondary">
-                                                    Select accounts...
-                                                </Typography>
-                                            );
-                                        }
-                                        return (
-                                            <Box
-                                                sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}
-                                            >
-                                                {selected.map(value => {
-                                                    const account = accounts.find(
-                                                        acc => acc.id === value
-                                                    );
-                                                    const displayName =
-                                                        account?.email || account?.id || value;
-                                                    return (
-                                                        <Chip
-                                                            key={value}
-                                                            label={displayName}
-                                                            size="small"
-                                                            variant="outlined"
-                                                        />
-                                                    );
-                                                })}
-                                            </Box>
-                                        );
-                                    }}
-                                    displayEmpty
-                                >
-                                    {accounts.map(account => {
-                                        // Create a display name for the account
-                                        const displayName = account.email || account.id;
-                                        const businessInfo = `${account.business_type} - ${account.country}`;
-
-                                        return (
-                                            <MenuItem key={account.id} value={account.id}>
-                                                <Checkbox
-                                                    checked={
-                                                        selectedAccounts.indexOf(account.id) > -1
-                                                    }
-                                                />
-                                                <ListItemText
-                                                    primary={displayName}
-                                                    secondary={businessInfo}
-                                                />
-                                            </MenuItem>
-                                        );
-                                    })}
-                                </Select>
-                            </FormControl>
-                            {selectedAccounts.length > 0 && (
-                                <Button
-                                    variant="outlined"
-                                    color="secondary"
-                                    onClick={clearAccountSelection}
-                                    sx={{ minWidth: 'auto', px: 2 }}
-                                >
-                                    Clear
-                                </Button>
-                            )}
-                        </Box>
+                        )}
                         <Typography variant="caption" color="textSecondary">
-                            Click Fetch to load accounts, then select the ones you want to include
-                            in the report
+                            Select the Stripe Connect accounts you want to include in your report
                         </Typography>
                     </Box>
                 </Grid>

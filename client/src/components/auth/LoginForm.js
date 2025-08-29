@@ -1,32 +1,24 @@
 import React, { useState } from 'react';
-import {
-    Box,
-    Paper,
-    TextField,
-    Button,
-    Typography,
-    Alert,
-    Container
-} from '@mui/material';
+import { Box, Paper, TextField, Button, Typography, Alert, Container } from '@mui/material';
 import { login } from '../../services/api';
 
-const LoginForm = ({ onLoginSuccess }) => {
+const LoginForm = ({ onLoginSuccess, stripeKeys }) => {
     const [formData, setFormData] = useState({
         username: '',
-        password: ''
+        password: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleChange = (e) => {
+    const handleChange = e => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value
+            [e.target.name]: e.target.value,
         });
         setError('');
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async e => {
         e.preventDefault();
         setLoading(true);
         setError('');

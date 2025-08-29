@@ -11,9 +11,9 @@ import path from 'path';
 // Import routes
 // import authRoutes from './routes/auth';
 import authRoutes from './routes/auth';
+import validateKeysRoutes from './routes/validateKeys';
 import reportRoutes from './routes/reports';
 import exportRoutes from './routes/export';
-import userService from './services/userService';
 
 const app = express();
 const PORT: string | number = process.env['PORT'] || 5000;
@@ -35,7 +35,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // Routes
-// app.use('/api/auth', authRoutes);
+app.use('/api/validate-keys', validateKeysRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/auth', authRoutes);
@@ -88,10 +88,8 @@ if (process.env['NODE_ENV'] === 'production') {
         });
     }
 } else {
-    // 404 handler for development mode
-    app.use('*', (_req: Request, res: Response) => {
-        res.status(404).json({ error: 'Route not found' });
-    });
+    // In development mode, don't add a catch-all route that interferes with API calls
+    console.log('🌍 Development mode - API routes available at /api/*');
 }
 
 const serverInstance = app.listen(PORT, () => {
@@ -109,13 +107,4 @@ serverInstance.headersTimeout = 610000;
 // @ts-ignore - keepAliveTimeout is a Node.js HTTP server property
 serverInstance.keepAliveTimeout = 65000;
 
-userService.importStripeAccounts()
-    .then(() => {
-        console.log('Stripe accounts imported.');
-    })
-    .catch((err: Error) => {
-        console.error('Failed to import accounts', err);
-        app.listen(3000, () =>
-            console.log('Server running without import on http://localhost:3000')
-        );
-    });
+console.log('🚀 Server ready - Stripe accounts will be imported when users provide their keys');
