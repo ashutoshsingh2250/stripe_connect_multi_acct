@@ -7,6 +7,9 @@ import LoginForm from './components/auth/LoginForm';
 import Dashboard from './components/dashboard/Dashboard';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
+// API functions
+import { checkAuthStatus } from './services/api';
+
 // Create theme
 const theme = createTheme({
     palette: {
@@ -28,7 +31,7 @@ function App() {
 
     // Check if user has already completed setup
     useEffect(() => {
-        const checkSetupStatus = () => {
+        const checkSetupStatus = async () => {
             const storedPublicKey = localStorage.getItem('stripePublicKey');
             const storedSecretKey = localStorage.getItem('stripeSecretKey');
             const authToken = localStorage.getItem('authToken');
@@ -36,7 +39,23 @@ function App() {
             if (storedPublicKey && storedSecretKey && authToken) {
                 // User has completed setup, check if token is still valid
                 setStripeKeys({ publicKey: storedPublicKey, secretKey: storedSecretKey });
-                setCurrentStep('login');
+
+                try {
+                    // Validate the existing token
+                    const response = await checkAuthStatus();
+                    if (response.data && response.data.user) {
+                        // Token is valid, go directly to dashboard
+                        setUser(response.data.user);
+                        setCurrentStep('dashboard');
+                    } else {
+                        // Token is invalid, go to login
+                        setCurrentStep('login');
+                    }
+                } catch (error) {
+                    console.log('Token validation failed, redirecting to login:', error);
+                    // Token is invalid, go to login
+                    setCurrentStep('login');
+                }
             } else if (storedPublicKey && storedSecretKey) {
                 // User has keys but no auth token
                 setStripeKeys({ publicKey: storedPublicKey, secretKey: storedSecretKey });
