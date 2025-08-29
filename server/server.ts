@@ -51,12 +51,18 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // Serve static files from React build in production
 if (process.env['NODE_ENV'] === 'production') {
+    console.log('🏗️  Production mode - looking for client build...');
+    console.log(`📁 Current working directory: ${process.cwd()}`);
+    console.log(`📁 __dirname: ${__dirname}`);
+
     // Try multiple possible paths for the client build
     const possiblePaths = [
         path.join(__dirname, '../client/build'),
         path.join(__dirname, '../../client/build'),
         path.join(process.cwd(), 'client/build'),
         path.join(process.cwd(), '../client/build'),
+        path.join(process.cwd(), 'src/client/build'), // Render path
+        path.join(__dirname, 'client/build'), // Alternative Render path
     ];
 
     let clientBuildPath = null;
