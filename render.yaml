@@ -34,6 +34,8 @@ services:
             value: America/New_York
           - key: CLIENT_URL
             sync: false
+          - key: REACT_APP_API_URL
+            value: https://stripe-connect-multi-acct-1.onrender.com
       healthCheckPath: /health
       autoDeploy: true
 
