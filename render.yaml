@@ -2,7 +2,7 @@ services:
     - type: web
       name: stripe-connect-app
       env: node
-      buildCommand: cd /opt/render/project/src && npm install && npm run build:prod
+      buildCommand: npm install && npm run build:prod
       startCommand: npm start
       envVars:
           - key: NODE_ENV
