@@ -9,7 +9,7 @@ export const pool = new Pool({
     database: process.env['PG_DB'],
     password: process.env['PG_PASS'],
     port: Number(process.env['PG_PORT']),
-    ssl: process.env['NODE_ENV'] === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
 });
 pool.on('error', (err: Error) => {
     console.error('Unexpected error on idle client', err);
