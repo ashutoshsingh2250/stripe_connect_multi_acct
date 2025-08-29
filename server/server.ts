@@ -10,10 +10,10 @@ import path from 'path';
 
 // Import routes
 // import authRoutes from './routes/auth';
-import authRoutes from './routes/pgauth'; // switch to pg-based auth
+import authRoutes from './routes/auth';
 import reportRoutes from './routes/reports';
 import exportRoutes from './routes/export';
-import { importStripeAccounts } from './routes/importUser';
+import userService from './services/userService';
 
 const app = express();
 const PORT: string | number = process.env['PORT'] || 5000;
@@ -109,11 +109,11 @@ serverInstance.headersTimeout = 610000;
 // @ts-ignore - keepAliveTimeout is a Node.js HTTP server property
 serverInstance.keepAliveTimeout = 65000;
 
-importStripeAccounts()
+userService.importStripeAccounts()
     .then(() => {
         console.log('Stripe accounts imported.');
     })
-    .catch(err => {
+    .catch((err: Error) => {
         console.error('Failed to import accounts', err);
         app.listen(3000, () =>
             console.log('Server running without import on http://localhost:3000')

@@ -1,70 +1,117 @@
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import userService from '../services/userService';
 import { validateJWT } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 
 const router = express.Router();
 
-// Simple in-memory user store (in production, use a database)
-const users = [
-    { username: 'admin', password: 'admin123' },
-    { username: 'user', password: 'password' },
-];
-
 // Login endpoint
-router.post('/login', (req: Request, res: Response): Response => {
-    const { username, password } = req.body;
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({
-            error: 'Bad Request',
-            message: 'Username and password are required',
+        if (!username || !password) {
+            res.status(400).json({
+                error: 'Bad Request',
+                message: 'Username and password are required',
+            });
+            return;
+        }
+
+        const user = await userService.findUserByUsername(username);
+
+        if (!user || !user.passwordHash) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Invalid username or password',
+            });
+            return;
+        }
+
+        const isValid = await userService.validatePassword(password, user.passwordHash);
+        if (!isValid) {
+            res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Invalid username or password',
+            });
+            return;
+        }
+
+        const jwtSecret = process.env['JWT_SECRET'] || 'stripe-connect-jwt-secret-2025';
+        const isMaster = user.stripeId && user.stripeId.startsWith('MASTER_ADMIN_'); // check for MASTER_ADMIN_ prefix
+        const token = jwt.sign(
+            {
+                id: user.id,
+                stripeId: user.stripeId,
+                username: user.username,
+                isMaster,
+                authenticated: true,
+                iat: Math.floor(Date.now() / 1000), // explicit issued-at time
+            },
+            jwtSecret,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            message: 'Login successful',
+            user: {
+                id: user.id,
+                stripeId: user.stripeId,
+                username: user.username,
+                email: user.email,
+                name: user.name,
+                isMaster,
+            },
+            token,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Login failed',
         });
     }
-
-    // Find user
-    const user = users.find(u => u.username === username && u.password === password);
-
-    if (!user) {
-        return res.status(401).json({
-            error: 'Unauthorized',
-            message: 'Invalid username or password',
-        });
-    }
-
-    // Generate JWT token
-    const jwtSecret = process.env['JWT_SECRET'] || 'stripe-connect-jwt-secret-2025';
-    const token = jwt.sign(
-        {
-            username: username,
-            authenticated: true,
-            iat: Math.floor(Date.now() / 1000),
-        },
-        jwtSecret,
-        { expiresIn: '24h' }
-    );
-
-    // Return JWT token in response for client to store and use in Authorization header
-    return res.json({
-        message: 'Login successful',
-        user: { username },
-        token: token, // JWT token to be used in Authorization Bearer header
-    });
 });
 
 // Logout endpoint
-router.post('/logout', (_req: Request, res: Response) => {
-    // With JWT in Authorization headers, logout is handled client-side by removing the token
-    // Server just confirms the logout action
-    return res.json({ message: 'Logout successful' });
+router.post('/logout', async (_req: Request, res: Response): Promise<void> => {
+    try {
+        // For JWT-based auth, logout is typically handled client-side
+        // But we can add server-side logic here if needed (e.g., token blacklisting)
+
+        res.json({
+            message: 'Logout successful',
+            success: true,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Logout failed',
+        });
+    }
 });
 
-// Check authentication status
-router.get('/me', validateJWT, (req: AuthenticatedRequest, res: Response): Response => {
-    return res.json({
-        authenticated: true,
-        user: { username: req.user?.username },
-    });
+// Get current user info endpoint - using middleware for validation
+router.get('/me', validateJWT, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        // User is already validated by middleware
+        res.json({
+            authenticated: true,
+            user: {
+                stripeId: req.user?.stripeId,
+                username: req.user?.username,
+                isMaster: req.user?.isMaster,
+            },
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to get user info',
+        });
+    }
 });
 
 export default router;
